@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
-import '../providers/transaction_provider.dart';
-import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/ip_currency_helper.dart';
 
@@ -17,15 +15,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool notificationsEnabled = true;
 
-  final List<String> currencies = const [
-    "LKR",
-    "INR",
-    "USD",
-    "EUR",
-    "GBP",
-    "PKR",
-    "BDT",
-  ];
+  final List<String> currencies = const ["LKR", "INR", "USD", "EUR", "GBP"];
 
   Future<void> _autoDetectCurrency() async {
     final detected = await IpCurrencyHelper.detectCurrency();
@@ -41,74 +31,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _handleExport() async {
-    final txProvider = context.read<TransactionProvider>();
-    txProvider.exportToJson();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Data exported to clipboard"),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
+  String _normalizeCurrency(String? value) {
+    if (value == null) return "USD";
 
-  Future<void> _handleClearAllData() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Clear All Data"),
-        content: const Text(
-          "Are you sure you want to delete all data? This action cannot be undone.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () async {
-              await context.read<TransactionProvider>().clearAllTransactions();
-              if (!mounted) return;
-              Navigator.pop(context);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("All data cleared"),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
+    if (value.contains("LKR")) return "LKR";
+    if (value.contains("INR")) return "INR";
+    if (value.contains("USD")) return "USD";
+    if (value.contains("EUR")) return "EUR";
+    if (value.contains("GBP")) return "GBP";
 
-  Future<void> _handleLogout() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (!mounted) return;
-              await context.read<AuthProvider>().logout();
-              if (!mounted) return;
-              Navigator.pop(context);
-            },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+    return "USD";
   }
 
   Future<void> changeCurrency(String value) async {
@@ -127,7 +59,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final currentCurrency = userProvider.user?.currency ?? "USD";
+          final currentCurrency = _normalizeCurrency(
+            userProvider.user!.currency,
+          );
 
           return SingleChildScrollView(
             child: Column(
@@ -180,51 +114,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     context.read<ThemeProvider>().setDarkMode(value);
                   },
                   isDarkMode: isDarkMode,
-                ),
-                const Divider(height: 32, indent: 16, endIndent: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    "Data",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildButtonItem(
-                  icon: Icons.download,
-                  title: "Export Data",
-                  subtitle: "Export all transactions as JSON",
-                  onTap: _handleExport,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildButtonItem(
-                  icon: Icons.delete_forever,
-                  title: "Clear All Data",
-                  subtitle: "Delete all transactions permanently",
-                  onTap: _handleClearAllData,
-                  isDarkMode: isDarkMode,
-                  isDestructive: true,
-                ),
-                const Divider(height: 32, indent: 16, endIndent: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    "Account",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildButtonItem(
-                  icon: Icons.logout,
-                  title: "Logout",
-                  subtitle: "Sign out from your account",
-                  onTap: _handleLogout,
-                  isDarkMode: isDarkMode,
-                  isDestructive: true,
                 ),
                 const Divider(height: 32, indent: 16, endIndent: 16),
                 Padding(
@@ -357,7 +246,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required VoidCallback onTap,
     required bool isDarkMode,
-    bool isDestructive = false,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -371,10 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  color: isDestructive ? Colors.red : AppColors.accent,
-                ),
+                Icon(icon, color: AppColors.accent),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -382,10 +267,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: isDestructive ? Colors.red : null,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
                         subtitle,
@@ -399,11 +281,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: isDestructive ? Colors.red : null,
-                ),
+                const Icon(Icons.arrow_forward_ios, size: 14),
               ],
             ),
           ),

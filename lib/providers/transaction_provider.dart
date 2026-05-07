@@ -8,35 +8,24 @@ class TransactionProvider extends ChangeNotifier {
   List<TransactionModel> _transactions = [];
   String _filterType = 'all'; // all, income, expense
   TransactionCategory? _selectedCategoryFilter;
-  String? _currentSheetId;
 
   List<TransactionModel> get transactions => _transactions;
   String get filterType => _filterType;
   TransactionCategory? get selectedCategoryFilter => _selectedCategoryFilter;
 
-  // Get transactions for current sheet
-  List<TransactionModel> get sheetTransactions {
-    if (_currentSheetId == null) return [];
-    return _transactions.where((t) => t.sheetId == _currentSheetId).toList();
-  }
+  double get balance => _transactions.fold(
+    0,
+    (sum, t) => t.isIncome ? sum + t.amount : sum - t.amount,
+  );
 
-  double get balance {
-    return sheetTransactions.fold(
-      0,
-      (sum, t) => t.isIncome ? sum + t.amount : sum - t.amount,
-    );
-  }
+  double get income =>
+      _transactions.where((t) => t.isIncome).fold(0, (a, b) => a + b.amount);
 
-  double get income => sheetTransactions
-      .where((t) => t.isIncome)
-      .fold(0, (a, b) => a + b.amount);
-
-  double get expense => sheetTransactions
-      .where((t) => !t.isIncome)
-      .fold(0, (a, b) => a + b.amount);
+  double get expense =>
+      _transactions.where((t) => !t.isIncome).fold(0, (a, b) => a + b.amount);
 
   List<TransactionModel> get filteredTransactions {
-    return sheetTransactions.where((t) {
+    return _transactions.where((t) {
         if (_filterType == 'income' && !t.isIncome) return false;
         if (_filterType == 'expense' && t.isIncome) return false;
         if (_selectedCategoryFilter != null &&
@@ -46,11 +35,6 @@ class TransactionProvider extends ChangeNotifier {
         return true;
       }).toList()
       ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
-  }
-
-  void setCurrentSheetId(String? sheetId) {
-    _currentSheetId = sheetId;
-    notifyListeners();
   }
 
   // Initialize
@@ -117,12 +101,12 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Get transactions by date range for current sheet
+  // Get transactions by date range
   List<TransactionModel> getTransactionsByDateRange(
     DateTime startDate,
     DateTime endDate,
   ) {
-    return sheetTransactions.where((t) {
+    return _transactions.where((t) {
       return t.date.isAfter(startDate) && t.date.isBefore(endDate);
     }).toList();
   }
@@ -136,29 +120,10 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
-  // Clear all transactions in current sheet
-  Future<void> clearSheetTransactions() async {
-    _transactions.removeWhere((t) => t.sheetId == _currentSheetId);
-    await _saveTransactions();
-    notifyListeners();
-  }
-
   // Clear all transactions
   Future<void> clearAllTransactions() async {
     _transactions.clear();
     await _saveTransactions();
     notifyListeners();
-  }
-
-  // Export data as JSON
-  String exportToJson() {
-    final Map<String, dynamic> data = {
-      'exportDate': DateTime.now().toIso8601String(),
-      'transactions': sheetTransactions.map((t) => t.toJson()).toList(),
-      'totalBalance': balance,
-      'totalIncome': income,
-      'totalExpense': expense,
-    };
-    return jsonEncode(data);
   }
 }

@@ -6,7 +6,7 @@ import '../models/transaction.dart';
 import '../models/category.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
-import '../widgets/transaction_card.dart';
+import '../widgets/transaction_tile.dart';
 import '../widgets/summary_card.dart';
 import '../theme/app_colors.dart';
 
@@ -314,8 +314,7 @@ class _DashboardState extends State<Dashboard> {
 
                             if (editTx == null) {
                               final newTx = TransactionModel(
-                                id: const Uuid().v4(),
-                                sheetId: 'default-sheet',
+                                id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
                                 title: titleController.text,
                                 amount: amount,
                                 date: date,
@@ -327,7 +326,6 @@ class _DashboardState extends State<Dashboard> {
                             } else {
                               final updatedTx = TransactionModel(
                                 id: editTx.id,
-                                sheetId: editTx.sheetId,
                                 title: titleController.text,
                                 amount: amount,
                                 date: date,
@@ -564,18 +562,10 @@ class _DashboardState extends State<Dashboard> {
                           itemCount: filtered.length,
                           itemBuilder: (context, index) {
                             final tx = filtered[index];
-                            final categoryInfo = CategoryHelper.getCategoryInfo(
-                              tx.category,
-                            );
-                            return TransactionCard(
-                              title: tx.title,
-                              amount: tx.amount,
-                              category: tx.category.toString().split('.')[1],
-                              icon: categoryInfo.icon,
-                              iconColor: categoryInfo.color,
-                              date: tx.date.toIso8601String().split('T')[0],
-                              isIncome: tx.isIncome,
-                              onTap: () {
+                            return TransactionTile(
+                              tx: tx,
+                              currencySymbol: currencySymbol,
+                              onEdit: () {
                                 openTransactionSheet(editTx: tx);
                               },
                               onDelete: () {

@@ -167,8 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (editTx == null) {
                             transactions.add(
                               TransactionModel(
-                                id: DateTime.now().toString(),
-                                sheetId: 'default-sheet',
+                                id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
                                 title: title,
                                 amount: double.tryParse(amount) ?? 0,
                                 date: selectedDate,
